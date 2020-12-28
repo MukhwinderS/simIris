@@ -49,7 +49,8 @@ The reaction parameter file contains information about the reaction to be simula
 	R1,W1: Excitation energy and resonance widht of beam-like ejectile in MeV
 	R2,W2: Excitation energy and resonance widht of target-like ejectile in MeV
 	E: Beam energy in MeV
-	SHT: Reaction on the solid H2/D2 target? (1=yes, 0=no)
+	SHT: Reaction on the solid H2/D2 target? (1=yes, 0=no) if this is 0 the reaction will take place at middle of silver foil
+	foil= foil material (107Ag)  
 
 Each parameter in both the geometry and the reaction parameter file has to be separated from the value by an "="-sign without any spaces, e.g. ICPressure=19.5
 
