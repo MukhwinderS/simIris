@@ -1,5 +1,6 @@
-#include <stdlib.h>
+ #include <stdlib.h>
 #include <fstream>
+#include <iostream>
 
 #include "TFile.h"
 #include "TTree.h"
@@ -200,14 +201,29 @@ int main(int argc, char *argv[])
 	nucleus A, a, B, b, c, d, e, f, decB,decc,decd;
 	Double_t reacX, reacY, reacZ;
 
-	A.getInfo(binpath, reacPrm.A);
-	A.Print();
-	a.getInfo(binpath, reacPrm.a);
-	a.Print();
-	B.getInfo(binpath, reacPrm.B);
-	B.Print();
-	b.getInfo(binpath, reacPrm.b);
-	b.Print();
+    if (isSHTReac)
+    {
+        A.getInfo(binpath, reacPrm.A);
+        A.Print();
+        a.getInfo(binpath, reacPrm.a);
+        a.Print();
+        B.getInfo(binpath, reacPrm.B);
+        B.Print();
+        b.getInfo(binpath, reacPrm.b);
+        b.Print();
+    }
+    else
+    {
+        A.getInfo(binpath, reacPrm.A);
+        A.Print();
+        a.getInfo(binpath, reacPrm.foil);
+        a.Print();
+        B.getInfo(binpath, reacPrm.B);
+        B.Print();
+        b.getInfo(binpath, reacPrm.foil);
+        b.Print();
+    }
+    
 	if(reacPrm.N>2){
 		c.getInfo(binpath, reacPrm.c);
 		c.Print();
@@ -225,7 +241,7 @@ int main(int argc, char *argv[])
 		f.Print();
 	}
 
-	mA = A.mass/1000.;	
+    mA = A.mass/1000.;
 	ma = a.mass/1000.;	
 	mB = B.mass/1000.+reacPrm.R1/1000.;	
 	mBR = mB;	
@@ -235,7 +251,8 @@ int main(int argc, char *argv[])
 	md = d.mass/1000.;
 	me = e.mass/1000.;
 	mf = f.mass/1000.;
-
+   // Printf("print A mass %lf and a mass %lf \n",A.mass,a.mass);
+    
 // Check for sequential decays ****************************************
 	Bool_t seqdec=kFALSE;
 	Double_t S_low=50.;
@@ -415,7 +432,7 @@ int main(int argc, char *argv[])
 	TLorentzVector target, beam, Sys;
 	TVector3 boostvect;
 
-	Double_t wght_max,width1,width2;
+	Double_t wght_max,width1,width2,sh;
 	Bool_t allowed;
 
 	// Calculate energy loss up to center of the target
@@ -425,7 +442,7 @@ int main(int argc, char *argv[])
    	EA -= ICdE;
    	EA -= eloss(A,0.5,EA,ICWindow2,A.EL.eSi3N4, A.EL.dedxSi3N4);
 	E_after_IC = EA;
-	
+   // printf("energy loss in IC full%lf \n Energy after IC%lf",ICdE,EA);
 	if(!isSHTReac){
 		if(geoPrm.Orientation==1){
 			E_before_Tgt = EA;
@@ -454,17 +471,27 @@ int main(int argc, char *argv[])
 			E_before_Foil = EA;
 			EA -= eloss(A,1./geoPrm.AoZFoil,EA,geoPrm.TFoil/2.,A.EL.eFoil, A.EL.dedxFoil);
    			E_center_Foil = EA;
-			EA -= eloss(A,1./geoPrm.AoZFoil,EA,geoPrm.TFoil/2.,A.EL.eFoil, A.EL.dedxFoil);
+			//EA -= eloss(A,1./geoPrm.AoZFoil,EA,geoPrm.TFoil/2.,A.EL.eFoil, A.EL.dedxFoil);
    			E_after_Foil = EA;
+            printf("Energy loss in foil%lf\n Energy after the foil%lf \n ",2*E_center_Foil,EA);
 		}
    		
 		E_before_Tgt = EA;
    		E_center_Tgt = EA - eloss(A,1.,EA,geoPrm.TTgt/2.,A.EL.eTgt, A.EL.dedxTgt);
    		E_after_Tgt = EA-eloss(A,1.,EA,geoPrm.TTgt,A.EL.eTgt, A.EL.dedxTgt);
+        //cout<<"\nEnergy centre of target"<<" "<<E_center_Tgt;
+        //cout<<"\nEnergy before tgt"<<" "<<E_before_Tgt<<" "<<"energy after tgt"<<E_after_Tgt;
 		if(geoPrm.Orientation==0) E_before_SSB = E_after_Tgt;
 		
 		reacZ = geoPrm.TTgt/2.;
-   		EA -= eloss(A,1.,EA,reacZ,A.EL.eTgt, A.EL.dedxTgt);
+        if (isSHTReac)
+        {
+            EA -= eloss(A,1.,EA,reacZ,A.EL.eTgt, A.EL.dedxTgt);
+        }
+        else
+        {
+            printf("reaction on foil with energy %lf",EA);
+        }
 	
 		if(geoPrm.Orientation==1){
 			E_before_Foil = E_after_Tgt;
@@ -545,16 +572,16 @@ int main(int argc, char *argv[])
 	// Start of event loop
 	while(Evnt<nsim) 
 	{
-		if(!isSHTReac){
-			//reacZ = geoPrm.TFoil/2.;
-			reacZ = rndm->Uniform(0,geoPrm.TFoil);
-   			EA = E_before_Foil - eloss(A,1./geoPrm.AoZFoil,E_before_Foil,reacZ,A.EL.eFoil, A.EL.dedxFoil);
-		}
-		else{	
-			reacZ = rndm->Uniform(0,geoPrm.TTgt);
-			//reacZ = geoPrm.TTgt/2.;
-   			EA = E_before_Tgt - eloss(A,b.Z/b.A,E_before_Tgt,reacZ,A.EL.eTgt, A.EL.dedxTgt);
- 		}
+        if(!isSHTReac){
+            //reacZ = geoPrm.TFoil/2.;
+            reacZ = rndm->Uniform(0,geoPrm.TFoil);
+               EA = E_before_Foil - eloss(A,1./geoPrm.AoZFoil,E_before_Foil,reacZ/2,A.EL.eFoil, A.EL.dedxFoil);
+        }
+        else{
+            reacZ = rndm->Uniform(0,geoPrm.TTgt);
+            //reacZ = geoPrm.TTgt/2.;
+               EA = E_before_Tgt - eloss(A,b.Z/b.A,E_before_Tgt,reacZ,A.EL.eTgt, A.EL.dedxTgt);
+         }
 		EA = EA/1000.; // convert to GeV for TGenPhaseSpace
 		PA = sqrt(EA*EA+2*EA*mA);
 
@@ -576,15 +603,18 @@ int main(int argc, char *argv[])
 		else if(reacPrm.SHAPE==1) mBR = rndm->Gaus(mB,width1);
 		else if(reacPrm.SHAPE==2) mBR = rndm->Uniform(mB-width1,mB+width1);
 		else mBR = rndm->BreitWigner(mB,width1);
+        sh=reacPrm.SHAPE;
+       // printf("value%lf",sh);
 		masses[1] =mBR;
 		if(reacPrm.SHAPE==0) mbR = rndm->BreitWigner(mb,width2);
 		else if(reacPrm.SHAPE==1) mbR = rndm->Gaus(mb,width2);
-		else if(reacPrm.SHAPE==2) mbR = rndm->Uniform(mb-width2,mb+width2);
+        else if(reacPrm.SHAPE==2) mbR = rndm->Uniform(mb-width2,mb+width2);
 		else mbR = rndm->BreitWigner(mb,width2);
 		masses[0] =mbR;
 		PS0.SetDecay(Sys, reacPrm.N, masses); //recalculate with resonance energy
 		//wght_max=PS0.GetWtMax();
-	
+        sh=reacPrm.SHAPE;
+      //  printf("value%lf\n",sh);
 		TLorentzVector *LTmp;
 		whilecount=0;
 		do{	
@@ -704,18 +734,10 @@ int main(int argc, char *argv[])
 			buP4.Pdeg=TMath::RadToDeg()*buP4.P;
 		}		
 
-		// XY position on target in mm	
+		// Position on target	
 		reacX = BeamSpot*rndm->Gaus();
 		reacY = BeamSpot*rndm->Gaus();
-		// reacZ is in units of mg/cm^2 and needed for energy loss corrections below
-		// adjust Z position around middle of target and convert to mm
-		if(reacZ<geoPrm.TTgt/2.) adjustZpos = -reacZ;
-		else if(reacZ>geoPrm.TTgt/2.) adjustZpos = reacZ - geoPrm.TTgt/2.;
-		else if(reacZ==geoPrm.TTgt/2.) adjustZpos = 0;
-		if(geoPrm.MTgt=="D") convertMM=(1./0.201)*(10.)*(1./1000.);
-		else if(geoPrm.MTgt=="H") convertMM=(1./0.0867)*(10.)*(1./1000.);
-		else printf("ERROR: Cannot convert target thickness to mm!");
-		reacPos.SetXYZ(reacX,reacY,adjustZpos*convertMM);// all in units of mm
+		reacPos.SetXYZ(reacX,reacY,reacZ);
 		
 		tlP = TgtELoss(tlP, b, geoPrm, reacZ, isSHTReac);// Calculate the energy loss of the particle in Foil and SHT
 		LEHit = detHits(tlP, b, reacPos,geoPrm.Mask,geoPrm.Shield);
@@ -763,7 +785,7 @@ int main(int argc, char *argv[])
 			if(csi.dE[0]>0. && yd.dE[0]>0.){
 			   	LEHitcntr++;
 				Double_t Eb = csi.dE[0];
-				Double_t cosTheta = TMath::Cos(yd.fThetaCalc[0]*TMath::DegToRad());
+				Double_t cosTheta = TMath::Cos(yd.fThetaRand[0]*TMath::DegToRad());
 				Eb= Eb+elossFi(Eb,0.1*1.4*6./cosTheta,b.EL.eMy,b.EL.dedxMy); //Mylar
 	      		Eb= Eb+elossFi(Eb,0.1*2.702*0.3/cosTheta,b.EL.eAl,b.EL.dedxAl); //0.3 u Al
 	      		Eb= Eb+elossFi(Eb,0.1*1.822*0.1/cosTheta,b.EL.eP,b.EL.dedxP); // 0.1Phosphorus
