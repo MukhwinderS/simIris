@@ -24,6 +24,7 @@ class reacParams : public TObject {
 		std::string d;
 		std::string e;
 		std::string f;
+		std::string foil;
 
 		Double_t E; // Beam energy
 		Double_t R1; // Resonance energy
@@ -33,6 +34,7 @@ class reacParams : public TObject {
 		Double_t SHAPE; // Resonance shape 0=Breit-Wigner, 1=Gaussian, 2=Square
 		
 		Bool_t SHT; // Reaction in solid Hydrogen/Deuterium target?
+		
 		
 		//virtual void ReadCalibPar(char* line);
 		virtual void ReadParams(char* line);
